@@ -2,7 +2,7 @@
 #include <QRandomGenerator>
 #include <QTime>
 #include <QFont>
-#include <QDebug> // Для отладки
+#include <QDebug> 
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), emptyRow(3), emptyCol(3), moveCount(0), gameTime(0), gameStarted(false)
@@ -10,14 +10,11 @@ MainWindow::MainWindow(QWidget *parent)
     setWindowTitle("Пятнашки");
     resize(400, 500);
 
-    // Центральный виджет
     centralWidget = new QWidget(this);
     setCentralWidget(centralWidget);
 
-    // Основной layout
     QVBoxLayout *mainLayout = new QVBoxLayout(centralWidget);
 
-    // Панель информации
     QHBoxLayout *infoLayout = new QHBoxLayout();
 
     movesLabel = new QLabel("Ходы: 0", this);
@@ -32,13 +29,11 @@ MainWindow::MainWindow(QWidget *parent)
     infoLayout->addWidget(timerLabel);
     mainLayout->addLayout(infoLayout);
 
-    // Игровое поле
     gridLayout = new QGridLayout();
     gridLayout->setSpacing(2);
     gridLayout->setContentsMargins(10, 10, 10, 10);
     mainLayout->addLayout(gridLayout);
 
-    // Кнопка новой игры
     QPushButton *newGameButton = new QPushButton("Новая игра", this);
     newGameButton->setStyleSheet(
         "QPushButton {"
@@ -56,11 +51,9 @@ MainWindow::MainWindow(QWidget *parent)
     connect(newGameButton, &QPushButton::clicked, this, &MainWindow::newGame);
     mainLayout->addWidget(newGameButton);
 
-    // Таймер
     gameTimer = new QTimer(this);
     connect(gameTimer, &QTimer::timeout, this, &MainWindow::updateTimer);
 
-    // Инициализация игры
     initGame();
 }
 
@@ -71,18 +64,15 @@ MainWindow::~MainWindow()
 
 void MainWindow::initGame()
 {
-    // Очистка предыдущих плиток
     qDeleteAll(tiles);
     tiles.clear();
-
-    // Очистка gridLayout
+    
     QLayoutItem* item;
     while ((item = gridLayout->takeAt(0)) != nullptr) {
         delete item->widget();
         delete item;
     }
 
-    // Создание 15 плиток
     for (int i = 1; i <= 15; ++i) {
         QPushButton *tile = new QPushButton(QString::number(i));
         tile->setFixedSize(80, 80);
@@ -101,12 +91,10 @@ void MainWindow::initGame()
             "}"
             );
 
-        // Прямое подключение сигнала
         connect(tile, &QPushButton::clicked, this, &MainWindow::tileClicked);
         tiles.append(tile);
     }
 
-    // Размещение плиток на сетке
     for (int i = 0; i < 4; ++i) {
         for (int j = 0; j < 4; ++j) {
             int index = i * 4 + j;
@@ -153,7 +141,6 @@ void MainWindow::tileClicked()
     QPushButton *clickedTile = qobject_cast<QPushButton*>(sender());
     if (!clickedTile) return;
 
-    // Находим позицию плитки
     int row = -1, col = -1;
     if (!findTilePosition(clickedTile, row, col)) {
         return;
@@ -161,51 +148,38 @@ void MainWindow::tileClicked()
 
     qDebug() << "Tile clicked at:" << row << col << "Empty at:" << emptyRow << emptyCol;
 
-    // Проверяем, можно ли переместить плитку
     if ((abs(row - emptyRow) == 1 && col == emptyCol) ||
         (abs(col - emptyCol) == 1 && row == emptyRow)) {
 
-        // Перемещаем плитку
         moveTile(row, col);
         moveCount++;
         movesLabel->setText("Ходы: " + QString::number(moveCount));
 
-        // Проверяем победу
         checkWin();
     }
 }
 
 void MainWindow::moveTile(int row, int col)
 {
-    // Находим плитку на позиции (row, col)
     QLayoutItem *item = gridLayout->itemAtPosition(row, col);
     if (!item) return;
 
     QWidget *tile = item->widget();
-
-    // Удаляем из старой позиции
     gridLayout->removeWidget(tile);
-
-    // Добавляем в новую позицию (пустую клетку)
     gridLayout->addWidget(tile, emptyRow, emptyCol);
-
-    // Обновляем позицию пустой клетки
     emptyRow = row;
     emptyCol = col;
 
-    // Обновляем layout
     centralWidget->update();
 }
 
 void MainWindow::shuffleTiles()
 {
-    // Создаем последовательность чисел
     QVector<int> numbers;
     for (int i = 1; i <= 15; ++i) {
         numbers.append(i);
     }
 
-    // Перемешиваем
     QVector<int> shuffled;
     while (!numbers.isEmpty()) {
         int index = QRandomGenerator::global()->bounded(numbers.size());
@@ -213,12 +187,9 @@ void MainWindow::shuffleTiles()
         numbers.removeAt(index);
     }
 
-    // Добавляем 0 для пустой клетки
     shuffled.append(0);
 
-    // Проверяем разрешимость и перемешиваем до получения разрешимой комбинации
     while (!isSolvable(shuffled)) {
-        // Перемешиваем снова
         numbers.clear();
         for (int i = 1; i <= 15; ++i) numbers.append(i);
         shuffled.clear();
@@ -230,7 +201,6 @@ void MainWindow::shuffleTiles()
         shuffled.append(0);
     }
 
-    // Обновляем позиции плиток
     for (int i = 0; i < 4; ++i) {
         for (int j = 0; j < 4; ++j) {
             int index = i * 4 + j;
@@ -241,7 +211,6 @@ void MainWindow::shuffleTiles()
         }
     }
 
-    // Располагаем плитки в новом порядке
     for (int i = 0; i < 16; ++i) {
         int row = i / 4;
         int col = i % 4;
@@ -249,10 +218,8 @@ void MainWindow::shuffleTiles()
         if (shuffled[i] == 0) {
             emptyRow = row;
             emptyCol = col;
-            // Пустая клетка - ничего не делаем
             qDebug() << "Empty cell at:" << row << col;
         } else {
-            // Находим плитку с нужным числом
             for (int j = 0; j < tiles.size(); ++j) {
                 if (tiles[j]->text().toInt() == shuffled[i]) {
                     gridLayout->addWidget(tiles[j], row, col);
@@ -278,7 +245,6 @@ bool MainWindow::isSolvable(const QVector<int>& tiles)
         }
     }
 
-    // Для сетки 4x4
     int emptyRowFromBottom = 4 - (tiles.indexOf(0) / 4);
     return (inversions % 2 == 0) == (emptyRowFromBottom % 2 == 1);
 }
@@ -291,7 +257,6 @@ void MainWindow::checkWin()
     for (int i = 0; i < 4; ++i) {
         for (int j = 0; j < 4; ++j) {
             if (i == 3 && j == 3) {
-                // Последняя клетка должна быть пустой
                 QLayoutItem *item = gridLayout->itemAtPosition(i, j);
                 if (item && item->widget()) {
                     win = false;
@@ -340,3 +305,4 @@ void MainWindow::updateTimer()
             .arg(seconds, 2, 10, QChar('0'))
         );
 }
+
